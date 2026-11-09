@@ -1,0 +1,149 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#17151b">
+  <title>Mimi Nails</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 24px;
+      background: #17151b; color: white;
+      font-family: Arial, sans-serif;
+    }
+    .container { max-width: 650px; margin: auto; }
+    header { text-align: center; padding: 25px 0; }
+    h1 { color: #B9A0D8; letter-spacing: 3px; }
+    .sub { color: #C5A04B; }
+    .card {
+      background: #24212a; padding: 20px;
+      border: 1px solid #51465e; border-radius: 15px;
+      margin: 15px 0;
+    }
+    input, button {
+      width: 100%; padding: 14px; margin: 8px 0;
+      border-radius: 9px; font-size: 16px;
+    }
+    input {
+      background: #17151b; color: white;
+      border: 1px solid #76658a;
+    }
+    button {
+      background: #B9A0D8; color: #17151b;
+      border: 0; font-weight: bold;
+    }
+    .gold { color: #C5A04B; }
+    .hidden { display: none; }
+    nav { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    nav button { background: #39313f; color: white; }
+    small { color: #c8bfd1; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>MIMI NAILS</h1>
+    <div class="sub">AGENDA · BELLEZA · ELEGANCIA</div>
+  </header>
+
+  <section id="login" class="card">
+    <h2>Bienvenida</h2>
+    <p>Ingresa a tu espacio de trabajo.</p>
+    <input id="email" type="email" placeholder="Correo electrónico">
+    <input id="password" type="password" placeholder="Contraseña">
+    <button onclick="entrar()">Iniciar sesión</button>
+    <p id="error" class="gold"></p>
+  </section>
+
+  <section id="app" class="hidden">
+    <div class="card">
+      <h2>¡Hola! 💜</h2>
+      <p>Tu negocio, organizado en un solo lugar.</p>
+      <nav>
+        <button onclick="mostrar('inicio')">Inicio</button>
+        <button onclick="mostrar('agenda')">Agenda</button>
+        <button onclick="mostrar('clientas')">Clientas</button>
+        <button onclick="mostrar('finanzas')">Finanzas</button>
+        <button onclick="mostrar('inventario')">Inventario</button>
+        <button onclick="mostrar('disenos')">Diseños</button>
+      </nav>
+    </div>
+
+    <div id="inicio" class="card">
+      <h2 class="gold">Panel principal</h2>
+      <p>Administra tus citas, clientas y movimientos.</p>
+      <p>Horario: lunes a viernes, 10:00 a 18:30.</p>
+      <p>Sábados, 10:00 a 13:30.</p>
+      <p>Domingos: descanso.</p>
+    </div>
+
+    <div id="agenda" class="card hidden">
+      <h2 class="gold">Agenda de citas</h2>
+      <p>Próximamente: registro y consulta de citas.</p>
+    </div>
+    <div id="clientas" class="card hidden">
+      <h2 class="gold">Mis clientas</h2>
+      <p>Próximamente: directorio e historial.</p>
+    </div>
+    <div id="finanzas" class="card hidden">
+      <h2 class="gold">Finanzas</h2>
+      <p>Próximamente: ingresos, gastos y anticipos.</p>
+    </div>
+    <div id="inventario" class="card hidden">
+      <h2 class="gold">Inventario</h2>
+      <p>Próximamente: control de materiales.</p>
+    </div>
+    <div id="disenos" class="card hidden">
+      <h2 class="gold">Galería de diseños</h2>
+      <p>Próximamente: inspiración y diseños.</p>
+    </div>
+
+    <button onclick="salir()">Cerrar sesión</button>
+  </section>
+  <small>© Mimi Nails</small>
+</div>
+
+<script>
+const SUPABASE_URL = "https://pjkkfuqoeyjavypabbvc.supabase.co";
+const SUPABASE_KEY = "sb_publishable_j11NVFOyGSVtSoL_dPHs1A_bB1z06gX";
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+async function entrar() {
+  const email = document.getElementById("email").value.trim();
+  const password = document.getElementById("password").value;
+  const error = document.getElementById("error");
+  error.textContent = "Verificando acceso...";
+  const { error: err } = await db.auth.signInWithPassword({ email, password });
+  if (err) {
+    error.textContent = "No se pudo iniciar sesión. Revisa tus datos.";
+    return;
+  }
+  mostrarApp();
+}
+
+async function mostrarApp() {
+  document.getElementById("login").classList.add("hidden");
+  document.getElementById("app").classList.remove("hidden");
+}
+
+function mostrar(seccion) {
+  ["inicio","agenda","clientas","finanzas","inventario","disenos"].forEach(id => {
+    document.getElementById(id).classList.toggle("hidden", id !== seccion);
+  });
+}
+
+async function salir() {
+  await db.auth.signOut();
+  document.getElementById("app").classList.add("hidden");
+  document.getElementById("login").classList.remove("hidden");
+}
+
+db.auth.getSession().then(({data}) => {
+  if (data.session) mostrarApp();
+});
+</script>
+</body>
+</html>
