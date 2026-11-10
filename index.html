@@ -80,10 +80,63 @@
       <p>Domingos: descanso.</p>
     </div>
 
-    <div id="agenda" class="card hidden">
-      <h2 class="gold">Agenda de citas</h2>
-      <p>Próximamente: registro y consulta de citas.</p>
-    </div>
+    
+<div id="agenda" class="card hidden">
+  <h2 class="gold">Agenda de citas</h2>
+
+  <h3>Nueva cita</h3>
+
+  <form id="formCita" onsubmit="guardarCita(event)">
+    <label>Nombre de la clienta</label>
+    <input id="cNombre" required placeholder="Nombre completo">
+
+    <label>Teléfono</label>
+    <input id="cTelefono" required type="tel" placeholder="Número de teléfono">
+
+    <label>Fecha</label>
+    <input id="cFecha" required type="date">
+
+    <label>Hora</label>
+    <input id="cHora" required type="time">
+
+    <label>Servicio</label>
+    <select id="cServicio" required>
+      <option value="">Selecciona un servicio</option>
+      <option>Aplicación acrílico</option>
+      <option>Relleno acrílico</option>
+      <option>Gel semipermanente</option>
+      <option>Retiro acrílico</option>
+      <option>Retiro gel</option>
+      <option>Otro</option>
+    </select>
+
+    <label>Técnica</label>
+    <input id="cTecnica" placeholder="Ej. Escultural, tip, etc.">
+
+    <label>Diseño</label>
+    <input id="cDiseno" placeholder="Descripción del diseño">
+
+    <label>Duración</label>
+    <input id="cDuracion" placeholder="Ej. 2 horas">
+
+    <label>Precio total (MXN)</label>
+    <input id="cPrecio" type="number" min="0" step="0.01" required>
+
+    <label>Anticipo (MXN)</label>
+    <input id="cAnticipo" type="number" min="0" step="0.01" value="0">
+
+    <button type="submit">Guardar cita</button>
+  </form>
+
+  <p id="mensajeCita"></p>
+
+  <hr>
+
+  <h3>Mis citas</h3>
+  <button type="button" onclick="cargarCitas()">Actualizar citas</button>
+  <div id="listaCitas">Cargando citas...</div>
+</div>
+    
     <div id="clientas" class="card hidden">
       <h2 class="gold">Mis clientas</h2>
       <p>Próximamente: directorio e historial.</p>
@@ -139,6 +192,143 @@ async function salir() {
   await db.auth.signOut();
   document.getElementById("app").classList.add("hidden");
   document.getElementById("login").classList.remove("hidden");
+}
+
+async function guardarCita(event) {
+  event.preventDefault();
+
+  const mensaje = document.getElementById("mensajeCita");
+  mensaje.textContent = "Guardando cita...";
+
+  try {
+    const { data: sesion } = await db.auth.getUser();
+    const usuario = sesion.user;
+
+    if (!usuario) {
+      mensaje.textContent = "Tu sesión expiró. Vuelve a ingresar.";
+      return;
+    }
+
+    const nombre = document.getElementById("cNombre").value.trim();
+    const telefono = document.getElementById("cTelefono").value.trim();
+    const precio = Number(document.getElementById("cPrecio").value);
+    const anticipo = Number(document.getElementById("cAnticipo").value || 0);
+
+    if (precio < 0 || anticipo < 0 || anticipo > precio) {
+      mensaje.textContent = "Revisa el precio y el anticipo.";
+      return;
+    }
+
+    // Buscar si la clienta ya está registrada
+    let { data: clienta, error: errorBusqueda } = await db
+      .from("clientas")
+      .select("id")
+      .eq("telefono", telefono)
+      .maybeSingle();
+
+    if (errorBusqueda) throw errorBusqueda;
+
+    // Si no existe, registrar a la clienta
+    if (!clienta) {
+      const { data: nuevaClienta, error: errorClienta } = await db
+        .from("clientas")
+        .insert({
+          owner_id: usuario.id,
+          nombre: nombre,
+          telefono: telefono
+        })
+        .select("id")
+        .single();
+
+      if (errorClienta) throw errorClienta;
+      clienta = nuevaClienta;
+    }
+
+    // Guardar la cita
+    const { error } = await db.from("citas").insert({
+      owner_id: usuario.id,
+      clienta_id: clienta.id,
+      nombre: nombre,
+      telefono: telefono,
+      fecha: document.getElementById("cFecha").value,
+      hora: document.getElementById("cHora").value,
+      servicio: document.getElementById("cServicio").value,
+      tecnica: document.getElementById("cTecnica").value,
+      diseno: document.getElementById("cDiseno").value,
+      duracion: document.getElementById("cDuracion").value,
+      precio: precio,
+      anticipo: anticipo,
+      estado: "Pendiente"
+    });
+
+    if (error) throw error;
+
+    mensaje.textContent = "¡Cita guardada correctamente! 💜";
+    document.getElementById("formCita").reset();
+    await cargarCitas();
+
+  } catch (error) {
+    console.error(error);
+    mensaje.textContent = "No se pudo guardar: " + error.message;
+  }
+}
+
+async function cargarCitas() {
+  const lista = document.getElementById("listaCitas");
+  lista.textContent = "Cargando citas...";
+
+  try {
+    const { data: usuarioData } = await db.auth.getUser();
+    if (!usuarioData.user) {
+      lista.textContent = "Inicia sesión nuevamente.";
+      return;
+    }
+
+    const { data, error } = await db
+      .from("citas")
+      .select("*")
+      .order("fecha", { ascending: true })
+      .order("hora", { ascending: true });
+
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      lista.textContent = "Todavía no tienes citas registradas.";
+      return;
+    }
+
+    lista.innerHTML = "";
+
+    data.forEach(cita => {
+      const tarjeta = document.createElement("div");
+      tarjeta.className = "card";
+
+      const titulo = document.createElement("h3");
+      titulo.textContent = cita.nombre;
+
+      const detalle = document.createElement("p");
+      detalle.textContent =
+        cita.fecha + " · " + cita.hora +
+        " | " + cita.servicio;
+
+      const pago = document.createElement("p");
+      pago.textContent =
+        "Precio: $" + Number(cita.precio).toFixed(2) +
+        " | Anticipo: $" + Number(cita.anticipo).toFixed(2) +
+        " | Saldo: $" +
+        (Number(cita.precio) - Number(cita.anticipo)).toFixed(2);
+
+      const estado = document.createElement("p");
+      estado.textContent = "Estado: " + cita.estado;
+
+      tarjeta.append(titulo, detalle, pago, estado);
+      lista.appendChild(tarjeta);
+    });
+
+  } catch (error) {
+    console.error(error);
+    lista.textContent = "Error al consultar citas: " + error.message;
+  }
 }
 
 db.auth.getSession().then(({data}) => {
