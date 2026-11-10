@@ -49,14 +49,46 @@
     <div class="sub">AGENDA · BELLEZA · ELEGANCIA</div>
   </header>
 
-  <section id="login" class="card">
-    <h2>Bienvenida</h2>
-    <p>Ingresa a tu espacio de trabajo.</p>
-    <input id="email" type="email" placeholder="Correo electrónico">
-    <input id="password" type="password" placeholder="Contraseña">
-    <button onclick="entrar()">Iniciar sesión</button>
-    <p id="error" class="gold"></p>
-  </section>
+  
+
+<section id="login" class="card">
+  <h2>Bienvenida</h2>
+  <p>Ingresa a tu espacio de trabajo.</p>
+
+  <input id="email" type="email" placeholder="Correo electrónico">
+  <input id="password" type="password" placeholder="Contraseña">
+
+  <button type="button" onclick="entrar()">Iniciar sesión</button>
+
+  <button type="button" onclick="recuperarPassword()">
+    Recuperar contraseña
+  </button>
+
+  <p id="error" class="gold"></p>
+</section>
+
+<section id="nuevaPassword" class="card hidden">
+  <h2>Nueva contraseña</h2>
+  <p>Escribe tu nueva contraseña para Mimi Nails.</p>
+
+  <input
+    id="passwordNueva"
+    type="password"
+    placeholder="Nueva contraseña"
+  >
+
+  <input
+    id="passwordRepetida"
+    type="password"
+    placeholder="Repite la contraseña"
+  >
+
+  <button type="button" onclick="guardarNuevaPassword()">
+    Guardar nueva contraseña
+  </button>
+
+  <p id="mensajePassword" class="gold"></p>
+</section>
 
   <section id="app" class="hidden">
     <div class="card">
@@ -192,6 +224,76 @@ async function salir() {
   await db.auth.signOut();
   document.getElementById("app").classList.add("hidden");
   document.getElementById("login").classList.remove("hidden");
+}
+
+let modoRecuperacion = false;
+
+db.auth.onAuthStateChange((event) => {
+  if (event === "PASSWORD_RECOVERY") {
+    modoRecuperacion = true;
+    document.getElementById("login").classList.add("hidden");
+    document.getElementById("app").classList.add("hidden");
+    document.getElementById("nuevaPassword").classList.remove("hidden");
+  }
+});
+
+async function recuperarPassword() {
+  const email = document.getElementById("email").value.trim();
+  const error = document.getElementById("error");
+
+  if (!email) {
+    error.textContent = "Escribe primero tu correo electrónico.";
+    return;
+  }
+
+  error.textContent = "Enviando correo de recuperación...";
+
+  const { error: err } = await db.auth.resetPasswordForEmail(email, {
+    redirectTo: "https://miminails.github.io/mimi-nails/"
+  });
+
+  if (err) {
+    error.textContent = "Error: " + err.message;
+    return;
+  }
+
+  error.textContent = "Revisa tu correo para recuperar tu contraseña. 💜";
+}
+
+async function guardarNuevaPassword() {
+  const password = document.getElementById("passwordNueva").value;
+  const repetir = document.getElementById("passwordRepetida").value;
+  const mensaje = document.getElementById("mensajePassword");
+
+  if (password.length < 6) {
+    mensaje.textContent = "Usa al menos 6 caracteres.";
+    return;
+  }
+
+  if (password !== repetir) {
+    mensaje.textContent = "Las contraseñas no coinciden.";
+    return;
+  }
+
+  mensaje.textContent = "Guardando contraseña...";
+
+  const { error } = await db.auth.updateUser({
+    password: password
+  });
+
+  if (error) {
+    mensaje.textContent = "Error: " + error.message;
+    return;
+  }
+
+  mensaje.textContent = "¡Contraseña actualizada correctamente! 💜";
+  modoRecuperacion = false;
+
+  document.getElementById("nuevaPassword").classList.add("hidden");
+  document.getElementById("passwordNueva").value = "";
+  document.getElementById("passwordRepetida").value = "";
+
+  mostrarApp();
 }
 
 async function guardarCita(event) {
@@ -332,7 +434,7 @@ async function cargarCitas() {
 }
 
 db.auth.getSession().then(({data}) => {
-  if (data.session) mostrarApp();
+  if (data.session && !modoRecuperacion) mostrarApp();
 });
 </script>
 </body>
