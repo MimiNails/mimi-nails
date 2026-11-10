@@ -171,7 +171,7 @@ async function entrar() {
   error.textContent = "Verificando acceso...";
   const { error: err } = await db.auth.signInWithPassword({ email, password });
   if (err) {
-    error.textContent = "No se pudo iniciar sesión. Revisa tus datos.";
+    error.textContent = "Error: " + err.message;
     return;
   }
   mostrarApp();
