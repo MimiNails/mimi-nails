@@ -169,7 +169,42 @@
   <div id="listaCitas">Cargando citas...</div>
 </div>
     
-    <div id="clientas" class="card hidden">
+    
+<div id="clientas" class="card hidden">
+  <h2 class="gold">Mis clientas 💜</h2>
+
+  <h3>Registrar nueva clienta</h3>
+
+  <form id="formClienta" onsubmit="guardarClienta(event)">
+    <label>Nombre completo</label>
+    <input id="clNombre" required placeholder="Nombre de la clienta">
+
+    <label>Teléfono</label>
+    <input id="clTelefono" required type="tel" placeholder="Teléfono">
+
+    <label>Notas</label>
+    <textarea id="clNotas" placeholder="Preferencias, diseños favoritos, alergias, etc."></textarea>
+
+    <button type="submit">Guardar clienta</button>
+  </form>
+
+  <p id="mensajeClienta" class="gold"></p>
+
+  <hr>
+
+  <h3>Directorio de clientas</h3>
+
+  <input
+    id="buscarClienta"
+    placeholder="Buscar por nombre o teléfono"
+    oninput="filtrarClientas()"
+  >
+
+  <div id="listaClientas">Cargando clientas...</div>
+
+  <div id="historialClienta"></div>
+</div>
+    
       <h2 class="gold">Mis clientas</h2>
       <p>Próximamente: directorio e historial.</p>
     </div>
@@ -214,11 +249,17 @@ async function mostrarApp() {
   document.getElementById("app").classList.remove("hidden");
 }
 
+
 function mostrar(seccion) {
   ["inicio","agenda","clientas","finanzas","inventario","disenos"].forEach(id => {
     document.getElementById(id).classList.toggle("hidden", id !== seccion);
   });
+
+  if (seccion === "clientas") {
+    cargarClientas();
+  }
 }
+  
 
 async function salir() {
   await db.auth.signOut();
@@ -296,6 +337,160 @@ async function guardarNuevaPassword() {
   mostrarApp();
 }
 
+let clientasCache = [];
+
+async function guardarClienta(event) {
+  event.preventDefault();
+
+  const mensaje = document.getElementById("mensajeClienta");
+  mensaje.textContent = "Guardando clienta...";
+
+  try {
+    const { data: usuarioData, error: usuarioError } = await db.auth.getUser();
+    if (usuarioError) throw usuarioError;
+
+    const usuario = usuarioData.user;
+    if (!usuario) throw new Error("Tu sesión ha expirado.");
+
+    const nombre = document.getElementById("clNombre").value.trim();
+    const telefono = document.getElementById("clTelefono").value.trim();
+    const notas = document.getElementById("clNotas").value.trim();
+
+    const { error } = await db.from("clientas").insert({
+      owner_id: usuario.id,
+      nombre,
+      telefono,
+      notas
+    });
+
+    if (error) throw error;
+
+    mensaje.textContent = "¡Clienta guardada correctamente! 💜";
+    document.getElementById("formClienta").reset();
+    await cargarClientas();
+
+  } catch (error) {
+    console.error(error);
+    mensaje.textContent = "No se pudo guardar: " + error.message;
+  }
+}
+
+async function cargarClientas() {
+  const lista = document.getElementById("listaClientas");
+  lista.textContent = "Cargando clientas...";
+
+  try {
+    const { data, error } = await db
+      .from("clientas")
+      .select("*")
+      .order("nombre", { ascending: true });
+
+    if (error) throw error;
+
+    clientasCache = data || [];
+    filtrarClientas();
+
+  } catch (error) {
+    console.error(error);
+    lista.textContent = "Error al consultar: " + error.message;
+  }
+}
+
+function filtrarClientas() {
+  const lista = document.getElementById("listaClientas");
+  const busqueda = document.getElementById("buscarClienta")
+    .value.trim().toLowerCase();
+
+  const resultados = clientasCache.filter(clienta =>
+    (clienta.nombre || "").toLowerCase().includes(busqueda) ||
+    (clienta.telefono || "").toLowerCase().includes(busqueda)
+  );
+
+  lista.replaceChildren();
+
+  if (resultados.length === 0) {
+    lista.textContent = "No se encontraron clientas.";
+    return;
+  }
+
+  resultados.forEach(clienta => {
+    const tarjeta = document.createElement("div");
+    tarjeta.className = "card";
+
+    const titulo = document.createElement("h3");
+    titulo.textContent = clienta.nombre;
+
+    const telefono = document.createElement("p");
+    telefono.textContent = "Teléfono: " + (clienta.telefono || "Sin teléfono");
+
+    const notas = document.createElement("p");
+    notas.textContent = "Notas: " + (clienta.notas || "Sin notas");
+
+    const boton = document.createElement("button");
+    boton.type = "button";
+    boton.textContent = "Ver historial";
+    boton.onclick = () => verHistorial(clienta);
+
+    tarjeta.append(titulo, telefono, notas, boton);
+    lista.appendChild(tarjeta);
+  });
+}
+
+async function verHistorial(clienta) {
+  const contenedor = document.getElementById("historialClienta");
+  contenedor.textContent = "Consultando historial...";
+
+  try {
+    const { data, error } = await db
+      .from("citas")
+      .select("*")
+      .eq("clienta_id", clienta.id)
+      .order("fecha", { ascending: false })
+      .order("hora", { ascending: false });
+
+    if (error) throw error;
+
+    contenedor.replaceChildren();
+
+    const titulo = document.createElement("h3");
+    titulo.textContent = "Historial de " + clienta.nombre;
+    contenedor.appendChild(titulo);
+
+    if (!data || data.length === 0) {
+      const vacio = document.createElement("p");
+      vacio.textContent = "Esta clienta todavía no tiene servicios registrados.";
+      contenedor.appendChild(vacio);
+      return;
+    }
+
+    data.forEach(cita => {
+      const tarjeta = document.createElement("div");
+      tarjeta.className = "card";
+
+      const detalle = document.createElement("p");
+      detalle.textContent =
+        cita.fecha + " · " + cita.hora + " · " + cita.servicio;
+
+      const pago = document.createElement("p");
+      pago.textContent =
+        "Precio: $" + Number(cita.precio).toFixed(2) +
+        " · Anticipo: $" + Number(cita.anticipo).toFixed(2) +
+        " · Saldo: $" +
+        (Number(cita.precio) - Number(cita.anticipo)).toFixed(2);
+
+      const estado = document.createElement("p");
+      estado.textContent = "Estado: " + cita.estado;
+
+      tarjeta.append(detalle, pago, estado);
+      contenedor.appendChild(tarjeta);
+    });
+
+  } catch (error) {
+    console.error(error);
+    contenedor.textContent = "Error al consultar historial: " + error.message;
+  }
+      }
+  
 async function guardarCita(event) {
   event.preventDefault();
 
