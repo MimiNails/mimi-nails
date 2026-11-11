@@ -853,12 +853,59 @@ async function guardarCita(event) {
   }
 }
 
+
+async function cambiarEstadoCita(id, estado) {
+  const { error } = await db
+    .from("citas")
+    .update({ estado })
+    .eq("id", id);
+
+  if (error) {
+    alert("No se pudo actualizar: " + error.message);
+    return;
+  }
+
+  alert("Cita actualizada: " + estado);
+  await cargarCitas();
+}
+
+async function editarCita(cita) {
+  const nuevaFecha = prompt("Nueva fecha (AAAA-MM-DD):", cita.fecha);
+  if (nuevaFecha === null) return;
+
+  const nuevaHora = prompt("Nueva hora (HH:MM):", cita.hora.slice(0, 5));
+  if (nuevaHora === null) return;
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(nuevaFecha) ||
+      !/^\d{2}:\d{2}$/.test(nuevaHora)) {
+    alert("Revisa el formato de fecha y hora.");
+    return;
+  }
+
+  const { error } = await db
+    .from("citas")
+    .update({
+      fecha: nuevaFecha,
+      hora: nuevaHora
+    })
+    .eq("id", cita.id);
+
+  if (error) {
+    alert("No se pudo editar: " + error.message);
+    return;
+  }
+
+  alert("¡Cita modificada correctamente! 💜");
+  await cargarCitas();
+}
+
 async function cargarCitas() {
   const lista = document.getElementById("listaCitas");
   lista.textContent = "Cargando citas...";
 
   try {
     const { data: usuarioData } = await db.auth.getUser();
+
     if (!usuarioData.user) {
       lista.textContent = "Inicia sesión nuevamente.";
       return;
@@ -872,12 +919,12 @@ async function cargarCitas() {
 
     if (error) throw error;
 
+    lista.replaceChildren();
+
     if (!data || data.length === 0) {
       lista.textContent = "Todavía no tienes citas registradas.";
       return;
     }
-
-    lista.innerHTML = "";
 
     data.forEach(cita => {
       const tarjeta = document.createElement("div");
@@ -902,6 +949,35 @@ async function cargarCitas() {
       estado.textContent = "Estado: " + cita.estado;
 
       tarjeta.append(titulo, detalle, pago, estado);
+
+      if (cita.estado !== "Cancelada") {
+        const botonConfirmar = document.createElement("button");
+        botonConfirmar.type = "button";
+        botonConfirmar.textContent = "Confirmar";
+        botonConfirmar.onclick = () =>
+          cambiarEstadoCita(cita.id, "Confirmada");
+
+        const botonEditar = document.createElement("button");
+        botonEditar.type = "button";
+        botonEditar.textContent = "Editar";
+        botonEditar.onclick = () => editarCita(cita);
+
+        const botonCancelar = document.createElement("button");
+        botonCancelar.type = "button";
+        botonCancelar.textContent = "Cancelar";
+        botonCancelar.onclick = () => {
+          if (confirm("¿Seguro que deseas cancelar esta cita?")) {
+            cambiarEstadoCita(cita.id, "Cancelada");
+          }
+        };
+
+        tarjeta.append(
+          botonConfirmar,
+          botonEditar,
+          botonCancelar
+        );
+      }
+
       lista.appendChild(tarjeta);
     });
 
@@ -910,6 +986,8 @@ async function cargarCitas() {
     lista.textContent = "Error al consultar citas: " + error.message;
   }
 }
+  
+
 
 db.auth.getSession().then(({data}) => {
   if (data.session && !modoRecuperacion) mostrarApp();
