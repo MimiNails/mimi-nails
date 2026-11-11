@@ -235,7 +235,25 @@
 
   <p id="mensajeMovimiento" class="gold"></p>
 
-  <hr>
+  
+<hr>
+
+<h3 class="gold">Reporte de ganancias 💜</h3>
+
+<label>Desde</label>
+<input type="date" id="reporteDesde">
+
+<label>Hasta</label>
+<input type="date" id="reporteHasta">
+
+<button type="button" onclick="generarReporte()">
+  Consultar reporte
+</button>
+
+<div id="resultadoReporte">
+  Selecciona un periodo para consultar tus ganancias.
+</div>
+  
   <h3>Resumen</h3>
   <p>Ingresos: <strong id="totalIngresos">$0.00</strong></p>
   <p>Gastos: <strong id="totalGastos">$0.00</strong></p>
