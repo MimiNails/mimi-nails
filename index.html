@@ -486,6 +486,37 @@ async function cargarInventario() {
   }
 }
 
+async function actualizarCantidad(producto) {
+  const nuevaCantidad = prompt(
+    "Nueva cantidad para " + producto.nombre + ":",
+    producto.cantidad
+  );
+
+  if (nuevaCantidad === null) return;
+
+  const cantidad = Number(nuevaCantidad);
+
+  if (nuevaCantidad.trim() === "" ||
+      !Number.isFinite(cantidad) ||
+      cantidad < 0) {
+    alert("Escribe una cantidad válida.");
+    return;
+  }
+
+  const { error } = await db
+    .from("inventario")
+    .update({ cantidad })
+    .eq("id", producto.id);
+
+  if (error) {
+    alert("No se pudo actualizar: " + error.message);
+    return;
+  }
+
+  alert("¡Existencias actualizadas! 💜");
+  await cargarInventario();
+}
+
 function filtrarInventario() {
   const lista = document.getElementById("listaInventario");
   const busqueda = document.getElementById("buscarProducto")
