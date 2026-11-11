@@ -1020,6 +1020,13 @@ async function cargarCitas() {
 
       tarjeta.append(titulo, detalle, pago, estado);
 
+const botonPago = document.createElement("button");
+botonPago.type = "button";
+botonPago.textContent = "Registrar pago";
+botonPago.onclick = () => registrarPago(cita);
+
+tarjeta.appendChild(botonPago);
+      
       if (cita.estado !== "Cancelada") {
         const botonConfirmar = document.createElement("button");
         botonConfirmar.type = "button";
