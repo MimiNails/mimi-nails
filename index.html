@@ -377,6 +377,110 @@ async function guardarNuevaPassword() {
 
 let clientasCache = [];
 
+async function guardarMovimiento(event) {
+  event.preventDefault();
+
+  const mensaje = document.getElementById("mensajeMovimiento");
+  mensaje.textContent = "Guardando movimiento...";
+
+  try {
+    const { data: usuarioData, error: usuarioError } = await db.auth.getUser();
+    if (usuarioError) throw usuarioError;
+
+    const usuario = usuarioData.user;
+    if (!usuario) throw new Error("Tu sesión ha expirado.");
+
+    const tipo = document.getElementById("mTipo").value;
+    const concepto = document.getElementById("mConcepto").value.trim();
+    const fecha = document.getElementById("mFecha").value;
+    const monto = Number(document.getElementById("mMonto").value);
+
+    if (!tipo || !concepto || !fecha || monto <= 0) {
+      throw new Error("Revisa los datos del movimiento.");
+    }
+
+    const { error } = await db.from("movimientos").insert({
+      owner_id: usuario.id,
+      tipo,
+      concepto,
+      monto,
+      fecha
+    });
+
+    if (error) throw error;
+
+    mensaje.textContent = "¡Movimiento guardado correctamente! 💜";
+    document.getElementById("formMovimiento").reset();
+    await cargarFinanzas();
+
+  } catch (error) {
+    console.error(error);
+    mensaje.textContent = "No se pudo guardar: " + error.message;
+  }
+}
+
+async function cargarFinanzas() {
+  const lista = document.getElementById("listaMovimientos");
+  lista.textContent = "Cargando movimientos...";
+
+  try {
+    const { data, error } = await db
+      .from("movimientos")
+      .select("*")
+      .order("fecha", { ascending: false });
+
+    if (error) throw error;
+
+    const movimientos = data || [];
+    let ingresos = 0;
+    let gastos = 0;
+
+    lista.replaceChildren();
+
+    const moneda = cantidad =>
+      Number(cantidad).toLocaleString("es-MX", {
+        style: "currency",
+        currency: "MXN"
+      });
+
+    movimientos.forEach(movimiento => {
+      const monto = Number(movimiento.monto);
+
+      if (movimiento.tipo === "Ingreso") ingresos += monto;
+      if (movimiento.tipo === "Gasto") gastos += monto;
+
+      const tarjeta = document.createElement("div");
+      tarjeta.className = "card";
+
+      const titulo = document.createElement("h3");
+      titulo.textContent = movimiento.concepto;
+
+      const detalle = document.createElement("p");
+      detalle.textContent =
+        movimiento.tipo + " · " + movimiento.fecha;
+
+      const cantidad = document.createElement("p");
+      cantidad.textContent = moneda(monto);
+
+      tarjeta.append(titulo, detalle, cantidad);
+      lista.appendChild(tarjeta);
+    });
+
+    if (movimientos.length === 0) {
+      lista.textContent = "Todavía no tienes movimientos registrados.";
+    }
+
+    document.getElementById("totalIngresos").textContent = moneda(ingresos);
+    document.getElementById("totalGastos").textContent = moneda(gastos);
+    document.getElementById("balanceFinanzas").textContent =
+      moneda(ingresos - gastos);
+
+  } catch (error) {
+    console.error(error);
+    lista.textContent = "Error al consultar: " + error.message;
+  }
+}
+
 async function guardarClienta(event) {
   event.preventDefault();
 
