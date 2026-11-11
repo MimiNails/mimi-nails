@@ -895,6 +895,80 @@ async function editarCita(cita) {
   await cargarCitas();
 }
 
+async function registrarPago(cita) {
+  const precio = Number(cita.precio);
+  const anticipoActual = Number(cita.anticipo || 0);
+  const saldo = precio - anticipoActual;
+
+  if (saldo <= 0) {
+    alert("Esta cita ya está pagada. 💜");
+    return;
+  }
+
+  const entrada = prompt(
+    "Saldo pendiente: $" + saldo.toFixed(2) +
+    "\n¿Cuánto pagó la clienta?"
+  );
+
+  if (entrada === null) return;
+
+  const pago = Number(entrada);
+
+  if (
+    entrada.trim() === "" ||
+    !Number.isFinite(pago) ||
+    pago <= 0 ||
+    pago > saldo
+  ) {
+    alert("Ingresa un pago válido, que no supere el saldo pendiente.");
+    return;
+  }
+
+  try {
+    const nuevoAnticipo = anticipoActual + pago;
+
+    const { error: errorCita } = await db
+      .from("citas")
+      .update({ anticipo: nuevoAnticipo })
+      .eq("id", cita.id);
+
+    if (errorCita) throw errorCita;
+
+    const hoy = new Date();
+    const fechaLocal = [
+      hoy.getFullYear(),
+      String(hoy.getMonth() + 1).padStart(2, "0"),
+      String(hoy.getDate()).padStart(2, "0")
+    ].join("-");
+
+    const { error: errorMovimiento } = await db
+      .from("movimientos")
+      .insert({
+        owner_id: (await db.auth.getUser()).data.user.id,
+        tipo: "Ingreso",
+        concepto: "Pago de " + cita.nombre + " - " + cita.servicio,
+        monto: pago,
+        fecha: fechaLocal
+      });
+
+    if (errorMovimiento) {
+      alert(
+        "El anticipo se actualizó, pero no se pudo registrar el ingreso en Finanzas: " +
+        errorMovimiento.message
+      );
+      await cargarCitas();
+      return;
+    }
+
+    alert("¡Pago registrado correctamente! 💜");
+    await cargarCitas();
+
+  } catch (error) {
+    console.error(error);
+    alert("No se pudo registrar el pago: " + error.message);
+  }
+}
+  
 async function cargarCitas() {
   const lista = document.getElementById("listaCitas");
   lista.textContent = "Cargando citas...";
