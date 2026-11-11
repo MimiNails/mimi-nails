@@ -517,6 +517,7 @@ async function actualizarCantidad(producto) {
   await cargarInventario();
 }
 
+
 function filtrarInventario() {
   const lista = document.getElementById("listaInventario");
   const busqueda = document.getElementById("buscarProducto")
@@ -544,52 +545,16 @@ function filtrarInventario() {
     cantidad.textContent =
       "Existencia: " + producto.cantidad + " " + producto.unidad;
 
-    tarjeta.append(titulo, cantidad);
+    const boton = document.createElement("button");
+    boton.type = "button";
+    boton.textContent = "Actualizar cantidad";
+    boton.onclick = () => actualizarCantidad(producto);
+
+    tarjeta.append(titulo, cantidad, boton);
     lista.appendChild(tarjeta);
   });
 }
 
-async function guardarMovimiento(event) {
-  event.preventDefault();
-
-  const mensaje = document.getElementById("mensajeMovimiento");
-  mensaje.textContent = "Guardando movimiento...";
-
-  try {
-    const { data: usuarioData, error: usuarioError } = await db.auth.getUser();
-    if (usuarioError) throw usuarioError;
-
-    const usuario = usuarioData.user;
-    if (!usuario) throw new Error("Tu sesión ha expirado.");
-
-    const tipo = document.getElementById("mTipo").value;
-    const concepto = document.getElementById("mConcepto").value.trim();
-    const fecha = document.getElementById("mFecha").value;
-    const monto = Number(document.getElementById("mMonto").value);
-
-    if (!tipo || !concepto || !fecha || monto <= 0) {
-      throw new Error("Revisa los datos del movimiento.");
-    }
-
-    const { error } = await db.from("movimientos").insert({
-      owner_id: usuario.id,
-      tipo,
-      concepto,
-      monto,
-      fecha
-    });
-
-    if (error) throw error;
-
-    mensaje.textContent = "¡Movimiento guardado correctamente! 💜";
-    document.getElementById("formMovimiento").reset();
-    await cargarFinanzas();
-
-  } catch (error) {
-    console.error(error);
-    mensaje.textContent = "No se pudo guardar: " + error.message;
-  }
-}
 
 async function cargarFinanzas() {
   const lista = document.getElementById("listaMovimientos");
