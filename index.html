@@ -205,9 +205,6 @@
   <div id="historialClienta"></div>
 </div>
     
-      <h2 class="gold">Mis clientas</h2>
-      <p>Próximamente: directorio e historial.</p>
-    </div>
     
 <div id="finanzas" class="card hidden">
   <h2 class="gold">Finanzas 💜</h2>
@@ -250,10 +247,48 @@
   <div id="listaMovimientos">Cargando movimientos...</div>
 </div>
   
-    <div id="inventario" class="card hidden">
-      <h2 class="gold">Inventario</h2>
-      <p>Próximamente: control de materiales.</p>
-    </div>
+    
+<div id="inventario" class="card hidden">
+  <h2 class="gold">Mi inventario 💜</h2>
+
+  <h3>Registrar producto</h3>
+
+  <form id="formInventario" onsubmit="guardarProducto(event)">
+    <label>Nombre del producto</label>
+    <input id="iNombre" required placeholder="Ej. Acrílico cristal">
+
+    <label>Cantidad disponible</label>
+    <input id="iCantidad" type="number" min="0" step="0.01" required>
+
+    <label>Unidad</label>
+    <select id="iUnidad" required>
+      <option value="">Selecciona una unidad</option>
+      <option value="Pieza">Pieza</option>
+      <option value="Mililitro">Mililitro</option>
+      <option value="Gramo">Gramo</option>
+      <option value="Paquete">Paquete</option>
+      <option value="Botella">Botella</option>
+      <option value="Caja">Caja</option>
+    </select>
+
+    <button type="submit">Guardar producto</button>
+  </form>
+
+  <p id="mensajeInventario" class="gold"></p>
+
+  <hr>
+  <h3>Mis productos</h3>
+
+  <input id="buscarProducto" placeholder="Buscar producto"
+    oninput="filtrarInventario()">
+
+  <button type="button" onclick="cargarInventario()">
+    Actualizar inventario
+  </button>
+
+  <div id="listaInventario">Cargando productos...</div>
+</div>
+
     <div id="disenos" class="card hidden">
       <h2 class="gold">Galería de diseños</h2>
       <p>Próximamente: inspiración y diseños.</p>
