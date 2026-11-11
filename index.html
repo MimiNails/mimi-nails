@@ -418,6 +418,103 @@ async function guardarNuevaPassword() {
 
 let clientasCache = [];
 
+let inventarioCache = [];
+
+async function guardarProducto(event) {
+  event.preventDefault();
+
+  const mensaje = document.getElementById("mensajeInventario");
+  mensaje.textContent = "Guardando producto...";
+
+  try {
+    const { data: usuarioData, error: usuarioError } =
+      await db.auth.getUser();
+
+    if (usuarioError) throw usuarioError;
+
+    const usuario = usuarioData.user;
+    if (!usuario) throw new Error("Tu sesión ha expirado.");
+
+    const nombre = document.getElementById("iNombre").value.trim();
+    const cantidad = Number(document.getElementById("iCantidad").value);
+    const unidad = document.getElementById("iUnidad").value;
+
+    if (!nombre || !unidad || !Number.isFinite(cantidad) || cantidad < 0) {
+      throw new Error("Revisa los datos del producto.");
+    }
+
+    const { error } = await db.from("inventario").insert({
+      owner_id: usuario.id,
+      nombre,
+      cantidad,
+      unidad
+    });
+
+    if (error) throw error;
+
+    mensaje.textContent = "¡Producto guardado correctamente! 💜";
+    document.getElementById("formInventario").reset();
+    await cargarInventario();
+
+  } catch (error) {
+    console.error(error);
+    mensaje.textContent = "No se pudo guardar: " + error.message;
+  }
+}
+
+async function cargarInventario() {
+  const lista = document.getElementById("listaInventario");
+  lista.textContent = "Cargando productos...";
+
+  try {
+    const { data, error } = await db
+      .from("inventario")
+      .select("*")
+      .order("nombre", { ascending: true });
+
+    if (error) throw error;
+
+    inventarioCache = data || [];
+    filtrarInventario();
+
+  } catch (error) {
+    console.error(error);
+    lista.textContent = "Error al consultar: " + error.message;
+  }
+}
+
+function filtrarInventario() {
+  const lista = document.getElementById("listaInventario");
+  const busqueda = document.getElementById("buscarProducto")
+    .value.trim().toLowerCase();
+
+  const resultados = inventarioCache.filter(producto =>
+    (producto.nombre || "").toLowerCase().includes(busqueda)
+  );
+
+  lista.replaceChildren();
+
+  if (resultados.length === 0) {
+    lista.textContent = "No se encontraron productos.";
+    return;
+  }
+
+  resultados.forEach(producto => {
+    const tarjeta = document.createElement("div");
+    tarjeta.className = "card";
+
+    const titulo = document.createElement("h3");
+    titulo.textContent = producto.nombre;
+
+    const cantidad = document.createElement("p");
+    cantidad.textContent =
+      "Existencia: " + producto.cantidad + " " + producto.unidad;
+
+    tarjeta.append(titulo, cantidad);
+    lista.appendChild(tarjeta);
+  });
+}
+
 async function guardarMovimiento(event) {
   event.preventDefault();
 
