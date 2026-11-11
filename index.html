@@ -288,6 +288,7 @@ async function mostrarApp() {
 }
 
 
+
 function mostrar(seccion) {
   ["inicio","agenda","clientas","finanzas","inventario","disenos"].forEach(id => {
     document.getElementById(id).classList.toggle("hidden", id !== seccion);
@@ -296,7 +297,12 @@ function mostrar(seccion) {
   if (seccion === "clientas") {
     cargarClientas();
   }
+
+  if (seccion === "finanzas") {
+    cargarFinanzas();
+  }
 }
+
   
 
 async function salir() {
