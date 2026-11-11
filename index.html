@@ -316,78 +316,7 @@
   </section>
   <small>© Mimi Nails</small>
 </div>
-async function generarReporte() {
-  const desde = document.getElementById("reporteDesde").value;
-  const hasta = document.getElementById("reporteHasta").value;
-  const resultado = document.getElementById("resultadoReporte");
 
-  if (!desde || !hasta) {
-    resultado.textContent = "Selecciona ambas fechas.";
-    return;
-  }
-
-  if (desde > hasta) {
-    resultado.textContent =
-      "La fecha inicial no puede ser posterior a la fecha final.";
-    return;
-  }
-
-  resultado.textContent = "Calculando reporte...";
-
-  try {
-    const { data: usuarioData, error: usuarioError } =
-      await db.auth.getUser();
-
-    if (usuarioError) throw usuarioError;
-    if (!usuarioData.user) throw new Error("No hay una sesión activa.");
-
-    const { data, error } = await db
-      .from("movimientos")
-      .select("tipo, monto, fecha")
-      .eq("owner_id", usuarioData.user.id)
-      .gte("fecha", desde)
-      .lte("fecha", hasta);
-
-    if (error) throw error;
-
-    let ingresos = 0;
-    let gastos = 0;
-
-    (data || []).forEach(movimiento => {
-      const monto = Number(movimiento.monto) || 0;
-
-      if (movimiento.tipo === "Ingreso") ingresos += monto;
-      if (movimiento.tipo === "Gasto") gastos += monto;
-    });
-
-    const ganancia = ingresos - gastos;
-    const moneda = new Intl.NumberFormat("es-MX", {
-      style: "currency",
-      currency: "MXN"
-    });
-
-    resultado.replaceChildren();
-
-    const titulo = document.createElement("h3");
-    titulo.textContent = "Resultados del periodo";
-    resultado.appendChild(titulo);
-
-    [
-      "Ingresos: " + moneda.format(ingresos),
-      "Gastos: " + moneda.format(gastos),
-      "Ganancia neta: " + moneda.format(ganancia),
-      "Movimientos registrados: " + (data || []).length
-    ].forEach(texto => {
-      const parrafo = document.createElement("p");
-      parrafo.textContent = texto;
-      resultado.appendChild(parrafo);
-    });
-
-  } catch (error) {
-    console.error(error);
-    resultado.textContent = "No se pudo generar el reporte. Intenta nuevamente.";
-  }
-}
 <script>
 const SUPABASE_URL = "https://pjkkfuqoeyjavypabbvc.supabase.co";
 const SUPABASE_KEY = "sb_publishable_j11NVFOyGSVtSoL_dPHs1A_bB1z06gX";
@@ -1158,6 +1087,78 @@ tarjeta.appendChild(botonPago);
 db.auth.getSession().then(({data}) => {
   if (data.session && !modoRecuperacion) mostrarApp();
 });
+  async function generarReporte() {
+  const desde = document.getElementById("reporteDesde").value;
+  const hasta = document.getElementById("reporteHasta").value;
+  const resultado = document.getElementById("resultadoReporte");
+
+  if (!desde || !hasta) {
+    resultado.textContent = "Selecciona ambas fechas.";
+    return;
+  }
+
+  if (desde > hasta) {
+    resultado.textContent =
+      "La fecha inicial no puede ser posterior a la fecha final.";
+    return;
+  }
+
+  resultado.textContent = "Calculando reporte...";
+
+  try {
+    const { data: usuarioData, error: usuarioError } =
+      await db.auth.getUser();
+
+    if (usuarioError) throw usuarioError;
+    if (!usuarioData.user) throw new Error("No hay una sesión activa.");
+
+    const { data, error } = await db
+      .from("movimientos")
+      .select("tipo, monto, fecha")
+      .eq("owner_id", usuarioData.user.id)
+      .gte("fecha", desde)
+      .lte("fecha", hasta);
+
+    if (error) throw error;
+
+    let ingresos = 0;
+    let gastos = 0;
+
+    (data || []).forEach(movimiento => {
+      const monto = Number(movimiento.monto) || 0;
+
+      if (movimiento.tipo === "Ingreso") ingresos += monto;
+      if (movimiento.tipo === "Gasto") gastos += monto;
+    });
+
+    const ganancia = ingresos - gastos;
+    const moneda = new Intl.NumberFormat("es-MX", {
+      style: "currency",
+      currency: "MXN"
+    });
+
+    resultado.replaceChildren();
+
+    const titulo = document.createElement("h3");
+    titulo.textContent = "Resultados del periodo";
+    resultado.appendChild(titulo);
+
+    [
+      "Ingresos: " + moneda.format(ingresos),
+      "Gastos: " + moneda.format(gastos),
+      "Ganancia neta: " + moneda.format(ganancia),
+      "Movimientos registrados: " + (data || []).length
+    ].forEach(texto => {
+      const parrafo = document.createElement("p");
+      parrafo.textContent = texto;
+      resultado.appendChild(parrafo);
+    });
+
+  } catch (error) {
+    console.error(error);
+    resultado.textContent = "No se pudo generar el reporte. Intenta nuevamente.";
+  }
+  }
 </script>
 </body>
 </html>
