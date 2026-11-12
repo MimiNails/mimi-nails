@@ -1006,11 +1006,20 @@ async function cargarCitas() {
       return;
     }
 
-    const { data, error } = await db
-      .from("citas")
-      .select("*")
-      .order("fecha", { ascending: true })
-      .order("hora", { ascending: true });
+    let consulta = db
+  .from("citas")
+  .select("*");
+
+const fechaSeleccionada =
+  document.getElementById("filtroFechaCitas").value;
+
+if (fechaSeleccionada) {
+  consulta = consulta.eq("fecha", fechaSeleccionada);
+}
+
+const { data, error } = await consulta
+  .order("fecha", { ascending: true })
+  .order("hora", { ascending: true });
 
     if (error) throw error;
 
