@@ -115,7 +115,14 @@
     
 <div id="agenda" class="card hidden">
   <h2 class="gold">Agenda de citas</h2>
-
+<div>
+  <label>Consultar citas por fecha:</label>
+  <input type="date" id="filtroFechaCitas"
+         onchange="filtrarCitasPorFecha()">
+  <button type="button" onclick="limpiarFiltroCitas()">
+    Ver todas las citas
+  </button>
+</div>
   <h3>Nueva cita</h3>
 
   <form id="formCita" onsubmit="guardarCita(event)">
