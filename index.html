@@ -1175,6 +1175,14 @@ db.auth.getSession().then(({data}) => {
     resultado.textContent = "No se pudo generar el reporte. Intenta nuevamente.";
   }
   }
+  function filtrarCitasPorFecha() {
+  cargarCitas();
+}
+
+function limpiarFiltroCitas() {
+  document.getElementById("filtroFechaCitas").value = "";
+  cargarCitas();
+}
 </script>
 </body>
 </html>
